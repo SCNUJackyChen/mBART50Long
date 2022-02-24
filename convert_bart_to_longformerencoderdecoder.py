@@ -3,10 +3,10 @@ import logging
 import os
 import copy
 
-from transformers import MBartTokenizer as BartTokenizer
-
+from transformers import MBart50TokenizerFast as BartTokenizer
 from transformers import MBartForConditionalGeneration as BartForConditionalGeneration
-from transformers.models.bart.modeling_bart import shift_tokens_right
+
+# from transformers.models.bart.modeling_bart import shift_tokens_right
 from longformer.longformer_encoder_decoder import LongformerSelfAttentionForBart, LongformerEncoderDecoderConfig
 from longformer.longformer_encoder_decoder import LongformerEncoderDecoderForConditionalGeneration
 
@@ -116,7 +116,7 @@ def main():
     parser.add_argument(
         '--max_pos',
         type=int,
-        default=4096 * 4,
+        default=4096,
         help='maximum encoder positions'
     )
 
@@ -133,20 +133,20 @@ def main():
         max_pos=args.max_pos
     )
 
-    tokenizer = BartTokenizer.from_pretrained(args.save_model_to)
-    TXT = "My friends are <mask> but they eat too many carbs."
-    model = LongformerEncoderDecoderForConditionalGeneration.from_pretrained(args.save_model_to)
-    model.model.encoder.config.gradient_checkpointing = True
-    model.model.decoder.config.gradient_checkpointing = True
-    data = tokenizer([TXT], return_tensors='pt', padding='max_length', max_length=2048)
-    input_ids = data['input_ids']
-    attention_mask = data['attention_mask']
-    decoder_input_ids = shift_tokens_right(input_ids[:, :5], tokenizer.pad_token_id)
-    logits = model(input_ids, attention_mask=attention_mask, decoder_input_ids=decoder_input_ids, use_cache=False)[0]
-    masked_index = (input_ids[0] == tokenizer.mask_token_id).nonzero().item()
-    probs = logits[0, masked_index].softmax(dim=0)
-    values, predictions = probs.topk(5)
-    print(tokenizer.convert_ids_to_tokens(predictions))
+    # tokenizer = BartTokenizer.from_pretrained(args.save_model_to)
+    # TXT = "My friends are <mask> but they eat too many carbs."
+    # model = LongformerEncoderDecoderForConditionalGeneration.from_pretrained(args.save_model_to)
+    # model.model.encoder.config.gradient_checkpointing = True
+    # model.model.decoder.config.gradient_checkpointing = True
+    # data = tokenizer([TXT], return_tensors='pt', padding='max_length', max_length=2048)
+    # input_ids = data['input_ids']
+    # attention_mask = data['attention_mask']
+    # decoder_input_ids = shift_tokens_right(input_ids[:, :5], tokenizer.pad_token_id)
+    # logits = model(input_ids, attention_mask=attention_mask, decoder_input_ids=decoder_input_ids, use_cache=False)[0]
+    # masked_index = (input_ids[0] == tokenizer.mask_token_id).nonzero().item()
+    # probs = logits[0, masked_index].softmax(dim=0)
+    # values, predictions = probs.topk(5)
+    # print(tokenizer.convert_ids_to_tokens(predictions))
 
 
 if __name__ == "__main__":

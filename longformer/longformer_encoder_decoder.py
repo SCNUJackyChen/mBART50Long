@@ -3,7 +3,7 @@ from torch import nn, Tensor
 from longformer.longformer import LongformerSelfAttention
 from transformers import MBartConfig as BartConfig
 from transformers import MBartForConditionalGeneration as BartForConditionalGeneration
-
+from transformers.models.mbart.modeling_mbart import MBartLearnedPositionalEmbedding
 
 class LongformerEncoderDecoderForConditionalGeneration(BartForConditionalGeneration):
     def __init__(self, config):
@@ -11,6 +11,7 @@ class LongformerEncoderDecoderForConditionalGeneration(BartForConditionalGenerat
         if config.attention_mode == 'n2':
             pass  # do nothing, use BertSelfAttention instead
         else:
+            self.model.encoder.embed_positions = MBartLearnedPositionalEmbedding(4096, 1024)
             for i, layer in enumerate(self.model.encoder.layers):
                 layer.self_attn = LongformerSelfAttentionForBart(config, layer_id=i)
 
