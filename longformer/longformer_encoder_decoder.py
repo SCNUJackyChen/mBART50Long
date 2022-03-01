@@ -12,6 +12,7 @@ class LongformerEncoderDecoderForConditionalGeneration(BartForConditionalGenerat
             pass  # do nothing, use BertSelfAttention instead
         else:
             self.model.encoder.embed_positions = MBartLearnedPositionalEmbedding(4096, 1024)
+            config.attention_mode = 'tvm'
             for i, layer in enumerate(self.model.encoder.layers):
                 layer.self_attn = LongformerSelfAttentionForBart(config, layer_id=i)
 
@@ -50,22 +51,20 @@ class LongformerSelfAttentionForBart(nn.Module):
 
     def forward(
         self,
-        query,
-        key: Optional[Tensor],
-        key_padding_mask: Optional[Tensor] = None,
-        layer_state: Optional[Dict[str, Optional[Tensor]]] = None,
-        attn_mask: Optional[Tensor] = None,
-        need_weights=False,
+        hidden_states,
+        attention_mask = None,
         output_attentions=False,
+        layer_head_mask=None,
+        key_padding_mask = None,
     ) -> Tuple[Tensor, Optional[Tensor]]:
 
-        tgt_len, bsz, embed_dim = query.size()
+        tgt_len, bsz, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim
-        assert list(query.size()) == [tgt_len, bsz, embed_dim]
-        assert attn_mask is None
+        assert list(hidden_states.size()) == [tgt_len, bsz, embed_dim]
+        # assert attn_mask is None
 
         outputs = self.longformer_self_attn(
-            query.transpose(0, 1),  # LongformerSelfAttention expects (bsz, seqlen, embd_dim)
+            hidden_states,  # LongformerSelfAttention expects (bsz, seqlen, embd_dim)
             attention_mask=key_padding_mask.unsqueeze(dim=1).unsqueeze(dim=1) * -1,
             head_mask=None,
             encoder_hidden_states=None,

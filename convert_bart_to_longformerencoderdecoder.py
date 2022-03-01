@@ -110,7 +110,7 @@ def main():
     parser.add_argument(
         '--attention_window',
         type=int,
-        default=512,
+        default=128,
         help='attention window size for longformer self attention (one sided)'
     )
     parser.add_argument(
