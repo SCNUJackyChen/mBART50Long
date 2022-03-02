@@ -11,8 +11,8 @@ class LongformerEncoderDecoderForConditionalGeneration(BartForConditionalGenerat
         if config.attention_mode == 'n2':
             pass  # do nothing, use BertSelfAttention instead
         else:
-            self.model.encoder.embed_positions = MBartLearnedPositionalEmbedding(4096, 1024)
-            config.attention_mode = 'tvm'
+            # self.model.encoder.embed_positions = MBartLearnedPositionalEmbedding(4096, 1024)
+            # config.attention_mode = 'tvm'
             for i, layer in enumerate(self.model.encoder.layers):
                 layer.self_attn = LongformerSelfAttentionForBart(config, layer_id=i)
 
@@ -51,27 +51,28 @@ class LongformerSelfAttentionForBart(nn.Module):
 
     def forward(
         self,
-        hidden_states,
-        attention_mask = None,
-        output_attentions=False,
-        layer_head_mask=None,
-        key_padding_mask = None,
+        hidden_states: Tensor, # shape (batch_size, q_len, model_size)
+        key_value_states: Optional[Tensor] = None, # cross-attention in transformers.models.mbart.modeling_mbart
+        past_key_value: Optional[Tuple[Tensor]] = None, # only for decoder
+        attention_mask: Optional[Tensor] = None, # shape (batch_size, k_len) -> changed in transformers.models.modeling_mbart.MBartEncoder and MBartEncoderLayer (new mask uses bool -> global attention positions are lost, need to use the inverted orignal mask
+        layer_head_mask: Optional[Tensor] = None, # head dropout?
+        output_attentions: bool = False
     ) -> Tuple[Tensor, Optional[Tensor]]:
 
-        tgt_len, bsz, embed_dim = hidden_states.size()
+        bsz, tgt_len, embed_dim = hidden_states.size()
         assert embed_dim == self.embed_dim
-        assert list(hidden_states.size()) == [tgt_len, bsz, embed_dim]
-        # assert attn_mask is None
+        assert list(hidden_states.size()) == [bsz, tgt_len, embed_dim]
 
         outputs = self.longformer_self_attn(
-            hidden_states,  # LongformerSelfAttention expects (bsz, seqlen, embd_dim)
-            attention_mask=key_padding_mask.unsqueeze(dim=1).unsqueeze(dim=1) * -1,
+            hidden_states,
+            attention_mask=attention_mask * -1, # shape (batch_size, 1, 1, key_len)
             head_mask=None,
             encoder_hidden_states=None,
             encoder_attention_mask=None,
             output_attentions=output_attentions,
         )
 
-        attn_output = self.output(outputs[0].transpose(0, 1))
-
-        return (attn_output,) + outputs[1:] if len(outputs) == 2 else (attn_output, None)
+        ## new: MBart encoder expects shape (seq_len, bsz, embed_dim), no transpose needed
+        attn_output = self.output(outputs[0])
+        # new return in MBartAttention has attn_output, attn_weights_reshaped, past_key_value (only for decoder), need to return 3 values (None for past_key_value)
+        return (attn_output, outputs[1:] ,None) if len(outputs) == 2 else (attn_output, None, None)
