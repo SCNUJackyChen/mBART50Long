@@ -39,5 +39,4 @@ def translate_one(source_text: str, num_beams=1) -> str:
 
 print(translate_one("hello world", 2))
 ```
-
-For more details, check [this notebook](https://colab.research.google.com/drive/19yTi7b4KUvMNl8msRSr9a5p2CZa0V6ES?usp=sharing)
+For more details, [![this notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/19yTi7b4KUvMNl8msRSr9a5p2CZa0V6ES?usp=sharing)
